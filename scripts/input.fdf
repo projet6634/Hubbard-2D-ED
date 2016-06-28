@@ -1,0 +1,10 @@
+Lx          2
+Ly          2
+
+nsector     1
+%block sectors
+2 2
+%endblock sectors
+
+U           1.0d0
+mu          0.5d0

@@ -1,0 +1,9 @@
+Lx              2
+Ly              2
+Nsector              1
+%block Sectors
+ 2 2
+%endblock Sectors
+U          1.000000000    
+mu         0.5000000000    
+debug              F     # default value
