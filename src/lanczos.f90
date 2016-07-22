@@ -41,7 +41,7 @@ contains
 
         ev(1:m) = w(1:m)
         v(1:nstep,1:m) = z(1:nstep,1:m) 
-    end subroutine 
+    end subroutine lanczos_diagonalize
 
     ! calculates matrix elements of matrix M in the lanczos basis.
     ! M  =  ( a1  b2  0   0   ... 0   ) 
@@ -53,8 +53,26 @@ contains
     !
     ! uses an external routine matmult that handles the matrix-vector product.
     ! refer the interface declared inside the subroutine.
-    subroutine lanczos_iteration(matmult, nloc, v_init, maxnstep, nstep, a, b)
+    ! This routine uses only two n-vector
+    subroutine lanczos_iteration(hx, hxpy, nloc, v_init, maxnstep, nstep, a, b)
+
         use numeric_utils, only: mpi_dot_product, mpi_norm
+
+        interface 
+            ! Y = H*X
+            subroutine hx(n,x,y)
+                integer, intent(in) :: n
+                double precision, intent(in) :: x(n)
+                double precision, intent(out) :: y(n)
+            end subroutine hx
+            ! Y = Y + H*X
+            subroutine hxpy(n,x,y)
+                integer, intent(in) :: n
+                double precision, intent(in) :: x(n)
+                double precision, intent(out) :: y(n)
+            end subroutine hxpy
+        end interface
+
         integer, intent(in) :: &
             nloc, &       ! dimension of the vector local to the node
             maxnstep         ! maximum number of iteration steps
@@ -69,68 +87,149 @@ contains
             a(maxnstep), & ! diagonal matrix element in lanczos basis
             b(maxnstep)    ! off-diagonal matrix element in lanczos basis
 
-        interface 
-            ! external subroutine for matrix multiplication
-            ! Y = M*X
-            subroutine matmult(n,x,y)
-                integer, intent(in) :: n
-                double precision, intent(in) :: x(n)
-                double precision, intent(out) :: y(n)
-            end subroutine matmult
-        end interface
-
         ! temporary lanczos vectors
-        double precision :: v(nloc,2), w(nloc)
-        double precision :: norm_v
+        double precision, allocatable :: v(:), w(:)
+        double precision :: norm_v, t  
         
-        integer :: j, ierr
-        
-        ! Lanczos steps
-        ! ref: https://en.wikipedia.org/wiki/Lanczos_algorithm#Iteration 
+        integer :: i, j, ierr, k
 
-        ! normalize the initial vector
+        allocate(v(nloc), w(nloc))
         
-        norm_v = mpi_norm( v_init, nloc)
-        v(:,2) = v_init/norm_v
-        v(:,1) = 0.0D0
-
         a(maxnstep) = 0.0D0
         b(maxnstep) = 0.0D0
 
-        ! v(:,1) = v_(j-1)
-        ! v(:,2) = v_j
-        ! w(:)   = w_j
-        lanczos_loop: do j=1,maxnstep-1
-            nstep = j
+        ! Lanczos steps
+        ! ref: G. Golub, Matrix Computations, 4th ed., p.562 (2013)
 
-            ! w_j = H*v_j
-            call matmult( nloc, v(:,2), w(:) )
+        ! normalize the initial vector
+        norm_v = mpi_norm( v_init, nloc)
 
-            ! a_j = dot(w_j,v_j)
-            a(j) = mpi_dot_product(w(:), v(:,2), nloc)
+        w = v_init/norm_v
 
-            ! w_j = w_j - a_j * v_j - b_j * v_(j-1)
-            w(:) = w(:) - a(j)*v(:,2) - b(j)*v(:,1)
+        call hx( nloc, w(:), v(:) )
 
-            ! b_(j+1) = norm(w_j)
-            b(j+1) = mpi_norm(w(:), nloc)
+        a(1) = mpi_dot_product( w, v, nloc )
+        b(1) = 0.d0
 
-            if (b(j+1).lt.1.d-8) then
-                exit lanczos_loop
+        if (maxnstep==1) then
+            nstep = 1
+            deallocate(v,w)
+            return
+        endif
+
+        call daxpy( nloc, -a(1), w, 1, v, 1 )
+        b(2) = mpi_norm( v, nloc )
+
+        k = 2
+        do while (1)
+            do i=1,nloc
+                t = w(i)
+                w(i) = v(i)/b(k)
+                v(i) = -b(k)*t
+            enddo
+
+            call hxpy( nloc, w(:), v(:) )
+            a(k) = mpi_dot_product( w, v, nloc ) 
+
+            if (k>=maxnstep.or.b(k)<1.d-16) then
+                nstep = k
+                exit
             endif
 
-            ! v_(j-1) = v_j
-            v(:,1) = v(:,2)
+            call daxpy( nloc, -a(k), w, 1, v, 1 )
+            b(k+1) = mpi_norm( v, nloc )
 
-            ! v_(j+1) = w_j/b(j+1)
-            v(:,2) = w(:)/b(j+1)
-        enddo lanczos_loop
+            k = k+1
+        enddo
 
-        ! handles the last step
-        if (nstep.eq.maxnstep-1) then
-            call matmult( nloc, v(:,2), w(:) )
-            a(maxnstep) = mpi_dot_product(w(:),v(:,2),nloc)
-            nstep = maxnstep
-        endif
+        deallocate(v,w)
     end subroutine lanczos_iteration
+
+    subroutine lanczos_ground_state(hx, hxpy, nloc, v_init, nstep, &
+                                       a, b, coeff, E0, gs, residual)
+
+        use numeric_utils, only: mpi_dot_product, mpi_norm
+
+        interface 
+            ! Y = H*X
+            subroutine hx(n,x,y)
+                integer, intent(in) :: n
+                double precision, intent(in) :: x(n)
+                double precision, intent(out) :: y(n)
+            end subroutine hx
+            ! Y = Y + H*X
+            subroutine hxpy(n,x,y)
+                integer, intent(in) :: n
+                double precision, intent(in) :: x(n)
+                double precision, intent(out) :: y(n)
+            end subroutine hxpy
+        end interface
+
+        integer, intent(in) :: &
+            nloc, &       ! dimension of the vector local to the node
+            nstep         
+
+        double precision, intent(in) :: &
+            v_init(nloc), &   ! starting vector for lanczos iteration
+            E0,           &  
+            a(nstep),     &   ! diagonal matrix element in lanczos basis
+            b(nstep),     &   ! off-diagonal matrix element in lanczos basis
+            coeff(nstep)  
+
+        double precision, intent(out) :: &
+            gs(nloc), residual
+
+        ! temporary lanczos vectors
+        double precision, allocatable :: v(:), w(:)
+        double precision :: norm_v, t
+        
+        integer :: i, j, ierr, k
+
+        gs = 0.d0
+
+        allocate(v(nloc), w(nloc))
+        ! normalize the initial vector
+        norm_v = mpi_norm( v_init, nloc)
+
+        w = v_init/norm_v ! v1
+
+        call daxpy( nloc, coeff(1), w, 1, gs, 1) 
+
+        call hx( nloc, w(:), v(:) )
+
+        if (nstep==1) then
+            deallocate(v,w)
+            return
+        endif
+
+        call daxpy( nloc, -a(1), w, 1, v, 1 )
+
+        k = 2
+        do while (1)
+            do i=1,nloc
+                t = w(i)
+                w(i) = v(i)/b(k)
+                v(i) = -b(k)*t
+            enddo
+            ! w = |v_k>
+            call daxpy( nloc, coeff(k), w, 1, gs, 1 ) 
+
+            call hxpy( nloc, w(:), v(:) )
+
+            if (k>=nstep.or.b(k)<1.d-16) then
+                exit
+            endif
+            
+            call daxpy( nloc, -a(k), w, 1, v, 1 )
+            k = k+1
+        enddo
+
+        ! test eigenvector residual | H|gs>-E0|gs> |^2
+        call hx( nloc, gs, v )
+        call daxpy( nloc, -E0, gs, 1, v, 1)
+
+        residual = mpi_dot_product( v, v, nloc )        
+
+        deallocate(v,w)
+    end subroutine lanczos_ground_state
 end module lanczos

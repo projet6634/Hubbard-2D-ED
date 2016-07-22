@@ -7,7 +7,8 @@ subroutine diag_arpack(isector, basis, nnz, H, row_idx, col_ptr, &
     include 'debug.h'
     include 'stat.h'
     type(basis_t), intent(in) :: basis
-    integer, intent(in) :: isector, nnz, row_idx(nnz), col_ptr(basis%nloc), maxnev
+    integer, intent(in) :: isector, nnz, row_idx(nnz), &
+                           col_ptr(basis%nloc+1), maxnev
     double precision, intent(in) :: H(nnz) 
     integer, intent(out) :: nev
     double precision, intent(out) :: eigval(maxnev), gs(basis%nloc)

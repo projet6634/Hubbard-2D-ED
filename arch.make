@@ -1,8 +1,7 @@
 
 FC      = mpif90
-FFLAGS = -traceback -fast -no-ipo -xSSE4.2 \
-         -heap-arrays
-#FFLAGS  = -traceback -C -CB -debug all
+FFLAGS = -traceback -fast -no-ipo -xSSE4.2
+#FFLAGS  = -traceback -C -CB -debug all -g
 
 FFTW    = $(MKLROOT)/interfaces/fftw3xf/libfftw3xf_intel.a
 ARPACK  = ~/opt/ARPACK/libarpack_OSX.a
