@@ -1,6 +1,6 @@
 module solver_otf
     use mpi
-    use ed_params, only: maxnstep, nsite
+    use ed_params, only: maxnstep, nsite, U, mu
     use ed_basis, only: generate_basis, basis_t, ed_basis_get, &
                         ed_basis_idx, kind_basis
     use utils, only: die
@@ -47,6 +47,7 @@ contains
         ! call green_diag( E0, nloc, gs, G )
         G = 0.d0
 
+        deallocate(x_all)
     end subroutine solve_otf
 
     subroutine diag_lanczos(basis, E0, gs)
@@ -116,7 +117,7 @@ contains
         double precision, intent(out) :: y(n)
 
         integer :: isite, jsite
-        integer(kind=kind_basis) :: ket, bra, icol, irow, b
+        integer(kind=kind_basis) :: ket, bra, icol, irow, a
         double precision :: rowsum, val
         logical :: nj(2), ni
 
@@ -154,8 +155,8 @@ contains
                                       *permsgn(ket,is,isite,jsite)
                                 bra = IBCLR(ket,is+jsite-1)
                                 bra = IBSET(bra,is+isite-1)
-                                b = ed_basis_idx(basis, bra)
-                                rowsum = rowsum + val*x_all(b)
+                                icol = ed_basis_idx(basis, bra)
+                                rowsum = rowsum + val*x_all(icol)
                             endif
                         enddo
                     endif
@@ -172,7 +173,7 @@ contains
         double precision, intent(out) :: y(n)
 
         integer :: isite, jsite
-        integer(kind=kind_basis) :: ket, bra, icol, irow, b
+        integer(kind=kind_basis) :: ket, bra, icol, irow
         double precision :: rowsum, val
         logical :: nj(2), ni
 
@@ -196,7 +197,6 @@ contains
                 ! off-diagonal
                 do ispin=1,2
                     if (nj(ispin)) then
-                        ! site index is due to the spin
                         is = (ispin-1)*nsite
 
                         ! for each neighbors
@@ -205,13 +205,13 @@ contains
                             isite = nnsite(1,i,jsite)
                             if (.not.BTEST(ket,is+isite-1)) then
                                 ! c^+_{isite,ispin} c_{jsite,ispin} 
-                                ! t == 1 
-                                val = nnsite(2,i,jsite)&
+                                ! t == -1 
+                                val = -nnsite(2,i,jsite)&
                                       *permsgn(ket,is,isite,jsite)
                                 bra = IBCLR(ket,is+jsite-1)
                                 bra = IBSET(bra,is+isite-1)
-                                b = ed_basis_idx(basis, bra)
-                                rowsum = rowsum + val*x_all(b)
+                                icol = ed_basis_idx(basis, bra)
+                                rowsum = rowsum + val*x_all(icol)
                             endif
                         enddo
                     endif
