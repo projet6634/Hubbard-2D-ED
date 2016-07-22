@@ -6,6 +6,7 @@ program main
     use ed_lattice, only: ed_lattice_init
     use ed_basis, only: generate_basis, basis_t, ed_basis_get
     use solver_csr, only: solve_csr
+    use solver_otf, only: solve_otf
     use ed_grid
 
     implicit none
@@ -35,15 +36,15 @@ program main
 
     call ed_lattice_init
 
-    call ed_grid_init
+    ! call ed_grid_init
 
-    allocate(G(nw))
+    allocate(G(nwloc))
 
     select case(diag_method)
         case(1)
             call solve_csr( E0, nloc, gs, G )
         case(2)
-            ! call diag_onthefly( basis, E0, gs )
+            call solve_otf( E0, nloc, gs, G )
         case default
             stop "invalid diag_method"
     end select
@@ -54,7 +55,7 @@ program main
         write(*,*) E0, E0/Nsite
         write(*,"(a)") repeat("=",80)
     endif
-    
+
     call fdf_shutdown
     
     tf = mpi_wtime(mpierr)
@@ -87,4 +88,5 @@ contains
             write(*,*)
         endif
     end subroutine
+
 end program main

@@ -11,13 +11,13 @@ module ed_basis
     public :: ed_basis_idx
     public :: get_bitidx
 
-    integer, parameter, public :: kind_basis = 8
+    integer, parameter, public :: kind_basis = 4
     type, public :: basis_t
-        integer :: nloc
+        integer(kind=kind_basis) :: nloc
 
-        integer :: ntot
-        integer :: nup
-        integer :: ndown
+        integer(kind=kind_basis) :: ntot
+        integer(kind=kind_basis) :: nup
+        integer(kind=kind_basis) :: ndown
 
         integer :: ne_up
         integer :: ne_down
@@ -27,11 +27,11 @@ module ed_basis
         integer(kind=kind_basis), allocatable :: up(:)
         integer(kind=kind_basis), allocatable :: down(:)
 
-        integer, allocatable :: idx_up(:)
-        integer, allocatable :: idx_down(:)
+        integer(kind=kind_basis), allocatable :: idx_up(:)
+        integer(kind=kind_basis), allocatable :: idx_down(:)
 
-        integer, allocatable :: nlocals(:)
-        integer, allocatable :: offsets(:)
+        integer(kind=kind_basis), allocatable :: nlocals(:)
+        integer(kind=kind_basis), allocatable :: offsets(:)
     end type basis_t
 
     private

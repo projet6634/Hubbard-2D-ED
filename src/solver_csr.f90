@@ -61,7 +61,8 @@ contains
         if(taskid==0) write(6,'(a,3x,f10.5,3x,a)') &
                              "walltime = ",(t2-t1)/60.D0," min."
 
-        call green_diag( E0, nloc, gs, G )
+        ! call green_diag( E0, nloc, gs, G )
+        G = 0.d0
 
         deallocate(H,row_idx,col_ptr,x_all)
     end subroutine solve_csr
@@ -130,7 +131,6 @@ contains
     subroutine green_diag( E0, nloc, gs, G )
         use numeric_utils
                          
-
         integer, intent(in) :: nloc
         double precision, intent(in) :: E0, gs(nloc)
 

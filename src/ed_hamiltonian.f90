@@ -10,7 +10,8 @@ module ed_hamiltonian
     public :: &
         make_hamiltonian, &
         multiply_H, &
-        load_hamiltonian
+        load_hamiltonian, &
+        permsgn
     
     private
 contains
@@ -75,8 +76,8 @@ contains
                             isite = nnsite(1,i,jsite)
                             if (.not.BTEST(ket,is+isite-1)) then
                                 ! c^+_{isite,ispin} c_{jsite,ispin} 
-                                ! t == 1 
-                                val = nnsite(2,i,jsite)*permsgn(ket,is,isite,jsite)
+                                ! t == -1 
+                                val = -nnsite(2,i,jsite)*permsgn(ket,is,isite,jsite)
                                 bra = IBCLR(ket,is+jsite-1)
                                 bra = IBSET(bra,is+isite-1)
                                 b = ed_basis_idx(basis,bra)
