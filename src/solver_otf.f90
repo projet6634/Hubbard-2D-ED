@@ -98,15 +98,16 @@ contains
         call mpi_bcast(coeff, nstep, mpi_double_precision, 0, comm, mpierr)
         call mpi_bcast(E0, 1, mpi_double_precision, 0, comm, mpierr)
 
-        t1 = mpi_wtime(mpierr)
-        call lanczos_ground_state(hx, hxpy, basis%nloc, v_init, nstep, &
-                                  a, b, coeff, E0, gs, residual)
-        t2 = mpi_wtime(mpierr)
+        gs = 0.d0
+        ! t1 = mpi_wtime(mpierr)
+        ! call lanczos_ground_state(hx, hxpy, basis%nloc, v_init, nstep, &
+        !                           a, b, coeff, E0, gs, residual)
+        ! t2 = mpi_wtime(mpierr)
 
-        if (master) then
-            print *, "lanczos ground state time = ", (t2-t1), " sec."
-            print *, "residual = ", residual
-        endif
+        ! if (master) then
+        !     print *, "lanczos ground state time = ", (t2-t1), " sec."
+        !     print *, "residual = ", residual
+        ! endif
 
         deallocate(v_init,a,b)
     end subroutine diag_lanczos

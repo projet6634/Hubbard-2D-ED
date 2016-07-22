@@ -42,7 +42,7 @@ contains
         endif
 
         U = fdf_get("U",1.0d0)
-        mu = U/2.d0
+        mu = fdf_get("mu",0.5d0)
 
         read_hamiltonian = fdf_get("UseSavedHamiltonian",.false.)
 
