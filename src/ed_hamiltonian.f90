@@ -76,7 +76,8 @@ contains
                                 ! c^+_{isite,ispin} c_{jsite,ispin} 
                                 ! t == 1 
                                 val = nnsite(2,i,jsite)*permsgn(ket,is,isite,jsite)
-                                bra = IBSET(IBCLR(ket,is+jsite-1),is+isite-1)
+                                bra = IBCLR(ket,is+jsite-1)
+                                bra = IBSET(bra,is+isite-1)
                                 b = ed_basis_idx(basis,bra)
 
                                 write(iuv) b, val
@@ -176,7 +177,6 @@ contains
         call mpi_allgatherv(x,basis%nloc,mpi_double_precision,x_all,&
             basis%nlocals,basis%offsets,mpi_double_precision,comm,mpierr)
 
-        
         y = 0.0d0
 
         do icol=1,basis%nloc 

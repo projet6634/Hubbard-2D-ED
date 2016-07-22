@@ -9,7 +9,10 @@ module ed_params
         Lx, Ly,     &    ! lattice size x,y
         Nsite,      &    ! number of sites
         nsector,    &    ! number of (Q,Sz) sectors
-        nev
+        maxnev,      &    ! maximum number of eigenvalues to calculate
+        maxnstep,    &    ! maximum lanczos iteration steps
+        diag_method      ! 1 = arpack
+                         ! 2 = lanczos
 
     integer, allocatable :: &
         sectors(:,:) ! (nup,ndown) arrays
@@ -61,9 +64,11 @@ contains
 
         read_hamiltonian = fdf_get("UseSavedHamiltonian",.false.)
 
-        nev = fdf_get("nev",3)
-        nstep = fdf_get("continuedfractionsteps",30)
+        maxnev = fdf_get("maxnev",3)
+        maxnstep = fdf_get("maxnstep",30)
         outdir = fdf_get("outdir","./")
         res = makedirqq(outdir)
+
+        diag_method = fdf_get("Diag", 1)
     end subroutine read_input
 end module ed_params

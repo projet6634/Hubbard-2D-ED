@@ -11,6 +11,7 @@ module ed_basis
     public :: ed_basis_idx
     public :: get_bitidx
 
+    integer, parameter, public :: kind_basis = 8
     type, public :: basis_t
         integer :: nloc
 
@@ -23,8 +24,8 @@ module ed_basis
 
         ! For up,down basis, 4-byte integer is sufficient,
         ! because the maximum number of sites will not be more than 31.
-        integer, allocatable :: up(:)
-        integer, allocatable :: down(:)
+        integer(kind=kind_basis), allocatable :: up(:)
+        integer(kind=kind_basis), allocatable :: down(:)
 
         integer, allocatable :: idx_up(:)
         integer, allocatable :: idx_down(:)
@@ -32,9 +33,6 @@ module ed_basis
         integer, allocatable :: nlocals(:)
         integer, allocatable :: offsets(:)
     end type basis_t
-
-    integer, parameter, public :: kind_basis = 8
-
 
     private
 contains
@@ -142,6 +140,12 @@ contains
         basis_i_up = mod(basis_i,divisor)
         basis_i_down = basis_i/(divisor)
 
+        if (basis_i_down<0) then
+            print *, basis_i, basis_i_up, basis_i_down
+        endif
+        if (basis_i_up<0) then
+            print *, basis_i, basis_i_up, basis_i_down
+        endif
         ed_basis_idx = (basis%idx_down(basis_i_down)-1)*basis%nup + &
                              basis%idx_up(basis_i_up)
     end function ed_basis_idx

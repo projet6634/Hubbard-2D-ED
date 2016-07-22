@@ -1,13 +1,14 @@
 program main
     use mpi
     use ed_params, only: read_input, Lx, Ly, Nsite, U, Nsector, sectors, &
-                        read_hamiltonian, nev, mu
+                        read_hamiltonian, maxnev, mu, diag_method
     use fdf
     use ed_basis, only: generate_basis, basis_t, ed_basis_get
     use utils, only: die
     use numeric_utils, only: icom
     use ed_hamiltonian, only: make_hamiltonian, load_hamiltonian
     use ed_lattice, only: ed_lattice_init
+
     implicit none
 
     ! local variables
@@ -15,7 +16,7 @@ program main
 
     double precision :: t1, t2, ti, tf
 
-    integer :: isector, nup, ndown, i,j,k
+    integer :: isector, nup, ndown, i, j, k, nev
 
     ! Hamiltonian related
     integer :: nnz
@@ -28,6 +29,7 @@ program main
 
 
     call mpi_setup
+    call random_seed
     ti = mpi_wtime(mpierr)
 
     call fdf_init('input.fdf', 'fdf.out')
@@ -36,7 +38,7 @@ program main
 
     call print_header
 
-    allocate(eigval(nev))
+    allocate(eigval(maxnev))
 
     ! ==========================================================================
     ! setup a lattice geometry 
@@ -77,29 +79,34 @@ program main
 
         if (taskid==0) write(*,*) "Diagonalizing sector", isector
         t1 = mpi_wtime(mpierr)
-        call diag(isector,basis,nnz,H,row_idx,col_ptr,nev,eigval,gs)
+        select case(diag_method)
+            case(1)
+                call diag_arpack(isector,basis,&
+                    nnz,H,row_idx,col_ptr,maxnev,nev,eigval,gs)
+            case(2)
+                call diag_lanczos(isector,basis,&
+                    nnz,H,row_idx,col_ptr,maxnev,nev,eigval,gs)
+            case default
+                stop "invalid diag_method"
+        end select
         t2 = mpi_wtime(mpierr)
         if(taskid==0) write(6,'(a,3x,f10.5,3x,a)') &
                              "walltime = ",(t2-t1)/60.D0," min."
         deallocate(H,row_idx,col_ptr)
 
-        ! Zero-temperature Green's function.
-        ! @TODO needs to be generalized to multiple sector cases
-        ! call green(basis,eigval(1),gs)
-
         if (master) then
             write(*,"(a)") repeat("=",80)
-            print *, "eigenvalues for sector ", isector
+            print *, "  E                       E/Nsite for sector ", &
+                isector
             write(*,"(a)") repeat("=",80)
 
-            do i=1,nev
-                write(*,*) eigval(i)/Nsite
+            do i=1,maxnev
+                write(*,*) eigval(i), eigval(i)/Nsite
             enddo
             write(*,"(a)") repeat("=",80)
         endif
     enddo
     
-
     call fdf_shutdown
     
     tf = mpi_wtime(mpierr)
@@ -129,7 +136,7 @@ contains
             write(*,*) "Number of Sites             = ", Nsite
             write(*,*) "U                           = ", U
             write(*,*) "mu                          = ", mu
-            write(*,*) "nev                         = ", nev
+            write(*,*) "maxnev                      = ", maxnev
 
             write(*,*) "Number of (up,down) sectors = ", nsector
             do i=1,nsector

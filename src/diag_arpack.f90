@@ -1,14 +1,16 @@
-subroutine diag(isector,basis,nnz,H,row_idx,col_ptr,nev,eigval,gs)
+subroutine diag_arpack(isector, basis, nnz, H, row_idx, col_ptr, &
+                       maxnev, nev, eigval, gs)
     use utils, only: die
     use ed_basis, only: basis_t
     use ed_hamiltonian, only: multiply_H
     use mpi
-    ! include 'debug.h'
+    include 'debug.h'
     include 'stat.h'
     type(basis_t), intent(in) :: basis
-    integer, intent(in) :: isector, nnz, row_idx(nnz), col_ptr(basis%nloc), nev
+    integer, intent(in) :: isector, nnz, row_idx(nnz), col_ptr(basis%nloc), maxnev
     double precision, intent(in) :: H(nnz) 
-    double precision, intent(out) :: eigval(nev), gs(basis%nloc)
+    integer, intent(out) :: nev
+    double precision, intent(out) :: eigval(maxnev), gs(basis%nloc)
     double precision, allocatable :: workl(:), workd(:), d(:,:), resid(:), &
                                      ax(:), v(:,:)
     logical, allocatable :: select(:)
@@ -19,10 +21,10 @@ subroutine diag(isector,basis,nnz,H,row_idx,col_ptr,nev,eigval,gs)
     double precision :: sigma, tol, pdnorm2
     external :: pdnorm2, daxpy
 
-    ! ndigit = -3
-    ! logfil = 6
-    ! msaupd = 3
-    ncv = 2*nev+nev/2
+    ndigit = -3
+    logfil = 6
+    msaupd = 3
+    ncv = 2*maxnev+maxnev/2
     ldv=basis%nloc
     lworkl = ncv*(ncv+8)
     allocate(workl(ncv*(ncv+8)))
@@ -44,7 +46,7 @@ subroutine diag(isector,basis,nnz,H,row_idx,col_ptr,nev,eigval,gs)
     ido = 0
 
     do
-        call pdsaupd( comm, ido, bmat, basis%nloc, which, nev, tol, resid, &
+        call pdsaupd( comm, ido, bmat, basis%nloc, which, maxnev, tol, resid, &
             ncv, v, ldv, iparam, ipntr, workd, workl, lworkl, info )
         if (ido .eq. -1 .or. ido .eq. 1) then
             call multiply_H(basis,nnz,H,row_idx,col_ptr,&
@@ -62,7 +64,7 @@ subroutine diag(isector,basis,nnz,H,row_idx,col_ptr,nev,eigval,gs)
         endif
     else
         call pdseupd(comm,.true.,'All',select,d,v,ldv,sigma, &
-            bmat, basis%nloc, which, nev, tol, resid, ncv, v, ldv, &
+            bmat, basis%nloc, which, maxnev, tol, resid, ncv, v, ldv, &
             iparam, ipntr, workd, workl, lworkl, ierr )
         if ( ierr .ne. 0) then
             if ( node .eq. 0 ) then
@@ -81,6 +83,8 @@ subroutine diag(isector,basis,nnz,H,row_idx,col_ptr,nev,eigval,gs)
         end if
     endif
 
-    eigval = d(:,1)
-    gs = v(:,1)
-end subroutine diag
+    nev = nconv
+    eigval(1:nev) = d(1:nev,1)
+    ! ground state eigenvector
+    gs(1:basis%nloc) = v(1:basis%nloc,1)
+end subroutine diag_arpack

@@ -1,10 +1,47 @@
 module lanczos
 
-    use numeric_utils, only: mpi_dot_product, mpi_norm
 
     implicit none
 
 contains
+
+    subroutine lanczos_diagonalize(nstep, a, b, ev, v)
+        INCLUDE 'mkl_lapack.fi'
+        integer, intent(in) :: nstep
+        double precision, intent(in) :: a(nstep), b(nstep)
+        double precision, intent(out) :: ev(nstep), v(nstep,nstep)
+
+        double precision :: d(nstep), e(nstep-1), abstol, &
+                            work(5*nstep)
+        integer :: il, iu, m, iwork(5*nstep), ifail(nstep), &
+                   info
+        double precision :: w(nstep), z(nstep,nstep)
+
+        integer :: i
+
+        ! copy a
+        d = a
+        e(1:nstep-1) = b(2:nstep)
+
+        il = 1     ! lowest eigenvalue index
+        iu = nstep ! highest eigenvalue index
+        abstol = 2*DLAMCH('S') ! recommended tolerance
+
+        call dstevx( 'V', 'A', nstep, d, e, 0.d0, 0.d0, il, iu, abstol, &
+                     m, w, z, nstep, work, iwork, ifail, info )
+
+        if (info/=0) then
+            write(*,*) "dstevx error. info = ", info
+            if (info>0) then
+                write(*,*) "ifail = "
+                write(*,*), ifail
+            endif
+            stop
+        endif
+
+        ev(1:m) = w(1:m)
+        v(1:nstep,1:m) = z(1:nstep,1:m) 
+    end subroutine 
 
     ! calculates matrix elements of matrix M in the lanczos basis.
     ! M  =  ( a1  b2  0   0   ... 0   ) 
@@ -16,21 +53,26 @@ contains
     !
     ! uses an external routine matmult that handles the matrix-vector product.
     ! refer the interface declared inside the subroutine.
-    subroutine lanczos_iteration(matmult, nloc, vec, nstep, a, b)
+    subroutine lanczos_iteration(matmult, nloc, v_init, maxnstep, nstep, a, b)
+        use numeric_utils, only: mpi_dot_product, mpi_norm
         integer, intent(in) :: &
             nloc, &       ! dimension of the vector local to the node
-            nstep         ! maximum number of iteration steps
+            maxnstep         ! maximum number of iteration steps
 
         double precision, intent(in) :: &
-            vec(nloc)     ! starting vector for lanczos iteration
+            v_init(nloc)     ! starting vector for lanczos iteration
+
+        integer, intent(out) :: &
+            nstep         ! number of calculated steps <= maxnstep
+                          ! if b(i) = 0 for some i, nstep = i-1
         double precision, intent(out) :: &
-            a(nstep), & ! diagonal matrix element in lanczos basis
-            b(nstep)    ! off-diagonal matrix element in lanczos basis
+            a(maxnstep), & ! diagonal matrix element in lanczos basis
+            b(maxnstep)    ! off-diagonal matrix element in lanczos basis
 
         interface 
             ! external subroutine for matrix multiplication
             ! Y = M*X
-            subroutine matmult(n,X,Y)
+            subroutine matmult(n,x,y)
                 integer, intent(in) :: n
                 double precision, intent(in) :: x(n)
                 double precision, intent(out) :: y(n)
@@ -47,17 +89,20 @@ contains
         ! ref: https://en.wikipedia.org/wiki/Lanczos_algorithm#Iteration 
 
         ! normalize the initial vector
-        norm_v = mpi_norm( vec, nloc)
-        v(:,2) = vec/norm_v
+        
+        norm_v = mpi_norm( v_init, nloc)
+        v(:,2) = v_init/norm_v
         v(:,1) = 0.0D0
 
-        a(:) = 0.0D0
-        b(:) = 0.0D0
+        a(maxnstep) = 0.0D0
+        b(maxnstep) = 0.0D0
 
         ! v(:,1) = v_(j-1)
         ! v(:,2) = v_j
         ! w(:)   = w_j
-        lanczos_loop: do j=1,nstep-1
+        lanczos_loop: do j=1,maxnstep-1
+            nstep = j
+
             ! w_j = H*v_j
             call matmult( nloc, v(:,2), w(:) )
 
@@ -70,7 +115,7 @@ contains
             ! b_(j+1) = norm(w_j)
             b(j+1) = mpi_norm(w(:), nloc)
 
-            if (b(j+1).lt.1e-8) then
+            if (b(j+1).lt.1.d-8) then
                 exit lanczos_loop
             endif
 
@@ -82,8 +127,10 @@ contains
         enddo lanczos_loop
 
         ! handles the last step
-        call matmult( nloc, v(:,2), w(:) )
-        a(nstep) = mpi_dot_product(w(:),v(:,2),nloc)
-
+        if (nstep.eq.maxnstep-1) then
+            call matmult( nloc, v(:,2), w(:) )
+            a(maxnstep) = mpi_dot_product(w(:),v(:,2),nloc)
+            nstep = maxnstep
+        endif
     end subroutine lanczos_iteration
 end module lanczos
