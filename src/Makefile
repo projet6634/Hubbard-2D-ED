@@ -6,7 +6,7 @@ PROGRAM = main
 
 OBJS = $(PROGRAM).o constants.o mpi.o ed_basis.o \
 	   numeric_utils.o ed_hamiltonian.o ed_lattice.o ed_params.o \
-	   diag_arpack.o diag_lanczos.o lanczos.o
+	   solver_csr.o lanczos.o ed_grid.o apply_c.o
 
 default: $(PROGRAM)
 ##################
@@ -22,8 +22,8 @@ FFLAGS+=-I./fdf
 ####################
 $(OBJS): $(FDF)
 $(PROGRAM).o: mpi.o ed_params.o ed_basis.o ed_lattice.o \
-			  ed_hamiltonian.o diag_arpack.o diag_lanczos.o
-diag_lanczos.o: lanczos.o
+			  ed_grid.o solver_csr.o
+solver_csr.o: lanczos.o ed_hamiltonian.o apply_c.o
 ed_hamiltonian.o: ed_basis.o ed_lattice.o
 ed_lattice.o: ed_params.o
 ed_basis.o: numeric_utils.o

@@ -1,35 +1,30 @@
 program main
     use mpi
-    use ed_params, only: read_input, Lx, Ly, Nsite, U, Nsector, sectors, &
-                        read_hamiltonian, maxnev, mu, diag_method
     use fdf
-    use ed_basis, only: generate_basis, basis_t, ed_basis_get
-    use utils, only: die
-    use numeric_utils, only: icom
-    use ed_hamiltonian, only: make_hamiltonian, load_hamiltonian
+    use ed_params, only: read_input, Lx, Ly, Nsite, U, mu, diag_method, &
+                         nw, wmin, wmax
     use ed_lattice, only: ed_lattice_init
+    use ed_basis, only: generate_basis, basis_t, ed_basis_get
+    use solver_csr, only: solve_csr
+    use ed_grid
 
     implicit none
 
     ! local variables
-    type(basis_t) basis
+    type(basis_t) :: basis
 
     double precision :: t1, t2, ti, tf
 
-    integer :: isector, nup, ndown, i, j, k, nev
+    integer :: nup, ndown, i, j, k
 
-    ! Hamiltonian related
-    integer :: nnz
-    integer, allocatable :: row_idx(:), col_ptr(:)
-    double precision, allocatable :: H(:)
-
+    integer :: nloc
+    double precision :: E0, dw
     double precision, allocatable :: &
-        eigval(:), & ! few lowest eigenvalues
-        gs(:)        ! ground state eigenvector
-
+        gs(:) ! ground state eigenvector
+    double complex, allocatable :: &
+        G(:)    
 
     call mpi_setup
-    call random_seed
     ti = mpi_wtime(mpierr)
 
     call fdf_init('input.fdf', 'fdf.out')
@@ -38,74 +33,27 @@ program main
 
     call print_header
 
-    allocate(eigval(maxnev))
-
-    ! ==========================================================================
-    ! setup a lattice geometry 
-    ! ==========================================================================
     call ed_lattice_init
 
-    ! ==========================================================================
-    ! solve for the ground state for each sector
-    ! ==========================================================================
-    do isector = 1,nsector
-        nup = sectors(isector,1)
-        ndown = sectors(isector,2)
+    call ed_grid_init
 
-        if (taskid==0) write(*,*) "Generating basis states..."
-        t1 = mpi_wtime(mpierr)
-        call generate_basis(nup, ndown, basis)
-        t2 = mpi_wtime(mpierr)
-        if(taskid==0) write(6,'(a,3x,f10.5,3x,a)') &
-                             "walltime = ",(t2-t1)/60.D0," min."
+    allocate(G(nw))
 
-        if (.not.read_hamiltonian) then
-            if (taskid==0) write(*,*) "Generating Hamiltonian..."
-            t1 = mpi_wtime(mpierr)
-            call make_hamiltonian(isector,basis)
-            t2 = mpi_wtime(mpierr)
-            if(taskid==0) write(6,'(a,3x,f10.5,3x,a)') &
-                                 "walltime = ",(t2-t1)/60.D0," min."
-        endif
+    select case(diag_method)
+        case(1)
+            call solve_csr( E0, nloc, gs, G )
+        case(2)
+            ! call diag_onthefly( basis, E0, gs )
+        case default
+            stop "invalid diag_method"
+    end select
 
-        if (taskid==0) write(*,*) "Loading Hamiltonian..."
-        t1 = mpi_wtime(mpierr)
-        call load_hamiltonian(isector,basis,nnz,H,row_idx,col_ptr)
-        t2 = mpi_wtime(mpierr)
-        if(taskid==0) write(6,'(a,3x,f10.5,3x,a)') &
-                             "walltime = ",(t2-t1)/60.D0," min."
-
-        allocate(gs(basis%nloc))
-
-        if (taskid==0) write(*,*) "Diagonalizing sector", isector
-        t1 = mpi_wtime(mpierr)
-        select case(diag_method)
-            case(1)
-                call diag_arpack(isector,basis,&
-                    nnz,H,row_idx,col_ptr,maxnev,nev,eigval,gs)
-            case(2)
-                call diag_lanczos(isector,basis,&
-                    nnz,H,row_idx,col_ptr,maxnev,nev,eigval,gs)
-            case default
-                stop "invalid diag_method"
-        end select
-        t2 = mpi_wtime(mpierr)
-        if(taskid==0) write(6,'(a,3x,f10.5,3x,a)') &
-                             "walltime = ",(t2-t1)/60.D0," min."
-        deallocate(H,row_idx,col_ptr)
-
-        if (master) then
-            write(*,"(a)") repeat("=",80)
-            print *, "  E                       E/Nsite for sector ", &
-                isector
-            write(*,"(a)") repeat("=",80)
-
-            do i=1,maxnev
-                write(*,*) eigval(i), eigval(i)/Nsite
-            enddo
-            write(*,"(a)") repeat("=",80)
-        endif
-    enddo
+    if (master) then
+        write(*,"(a)") repeat("=",80)
+        write(*,*) "  E                       E/Nsite "
+        write(*,*) E0, E0/Nsite
+        write(*,"(a)") repeat("=",80)
+    endif
     
     call fdf_shutdown
     
@@ -136,13 +84,6 @@ contains
             write(*,*) "Number of Sites             = ", Nsite
             write(*,*) "U                           = ", U
             write(*,*) "mu                          = ", mu
-            write(*,*) "maxnev                      = ", maxnev
-
-            write(*,*) "Number of (up,down) sectors = ", nsector
-            do i=1,nsector
-                write(*,*) "(",sectors(i,1),",",sectors(i,2),"), dim = ", &
-                    sectors(i,3)
-            enddo
             write(*,*)
         endif
     end subroutine

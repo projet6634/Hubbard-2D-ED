@@ -1,6 +1,47 @@
 module numeric_utils
 
 contains
+    ! f =                      b(1)*b(1)
+    !         ---------------------------------------------
+    !                                 b(2)*b(2)  
+    !          z - a(1) - ---------------------------------
+    !                                          b(3)*b(3)
+    !                         z - a(2)  -  ----------------
+    !                                       z - a(3) - ... 
+    double complex function continued_fraction_p(z,n,a,b) result(f)
+        double complex, intent(in) :: z
+        integer, intent(in) :: n
+        double precision, intent(in) :: a(n), b(n)
+
+        integer :: i 
+
+        f = b(n)*b(n)/(z-a(n))
+        do i = n-1, 2, -1
+            f = b(i)*b(i)/(z-a(i)-f)
+        enddo
+        f = b(1)*b(1)/(z-a(1)-f)
+    end function continued_fraction_p
+
+    ! f =                      b(1)*b(1) 
+    !         ---------------------------------------------
+    !                                 b(2)*b(2)  
+    !          z + a(1) - ---------------------------------
+    !                                          b(3)*b(3)
+    !                         z + a(2)  -  ----------------
+    !                                       z + a(3) - ... 
+    double complex function continued_fraction_m(z,n,a,b) result(f)
+        double complex, intent(in) :: z
+        integer, intent(in) :: n
+        double precision, intent(in) :: a(n), b(n)
+
+        integer :: i 
+
+        f = b(n)*b(n)/(z+a(n))
+        do i = n-1, 2, -1
+            f = b(i)*b(i)/(z+a(i)-f)
+        enddo
+        f = b(1)*b(1)/(z+a(1)-f)
+    end function continued_fraction_m
 
     double precision function boltzmann_factor(beta,de) result(prob)
         double precision, intent(in) :: beta, de

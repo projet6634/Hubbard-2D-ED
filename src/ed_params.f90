@@ -6,20 +6,18 @@ module ed_params
     use numeric_utils, only: icom
 
     integer :: &
-        Lx, Ly,     &    ! lattice size x,y
-        Nsite,      &    ! number of sites
-        nsector,    &    ! number of (Q,Sz) sectors
-        maxnev,      &    ! maximum number of eigenvalues to calculate
-        maxnstep,    &    ! maximum lanczos iteration steps
-        diag_method      ! 1 = arpack
-                         ! 2 = lanczos
-
-    integer, allocatable :: &
-        sectors(:,:) ! (nup,ndown) arrays
+        Lx, Ly,         &    ! lattice size x,y
+        Nsite,          &    ! number of sites
+        maxnstep,       &    ! maximum lanczos iteration steps
+        diag_method,    &    ! 1 = hamiltonian in csr format
+        nw
 
     double precision :: &
-        U, &         ! Coulomb repulsion
-        mu           ! chemical potential
+        U,       &       ! Coulomb repulsion
+        mu,      &       ! chemical potential
+        wmin,    &       ! wmin
+        wmax,    &       ! wmax
+        eta              ! broadening      
 
     logical :: &
         read_hamiltonian
@@ -39,35 +37,23 @@ contains
         Ly = fdf_get("Ly",2)
         Nsite = Lx*Ly ! even number of sites only
 
-        if (mod(Nsite,1)) then
+        if (mod(Nsite,2)==1) then
             call die("main","Only even number of sites are allowed.")
         endif
 
-        nsector = fdf_get("Nsector",1)
-        allocate(sectors(nsector,3))
-        if (fdf_block('Sectors', bfdf)) then
-            i = 1
-            do while((fdf_bline(bfdf, pline)) .and. (i .le. nsector))
-                sectors(i,1) = fdf_bintegers(pline,1) ! nup
-                sectors(i,2) = fdf_bintegers(pline,2) ! ndown
-                ! dimension of the sector
-                sectors(i,3) = icom(sectors(i,1)+sectors(i,2),sectors(i,1))* &
-                               icom(sectors(i,1)+sectors(i,2),sectors(i,2)) 
-                i = i + 1
-            enddo
-        else
-            call die("main", "please specify the sectors")
-        endif
-
         U = fdf_get("U",1.0d0)
-        mu = fdf_get("mu",0.5d0)
+        mu = U/2.d0
 
         read_hamiltonian = fdf_get("UseSavedHamiltonian",.false.)
 
-        maxnev = fdf_get("maxnev",3)
         maxnstep = fdf_get("maxnstep",30)
         outdir = fdf_get("outdir","./")
         res = makedirqq(outdir)
+
+        nw = fdf_get("nw", 1000)
+        wmin = fdf_get("wmin", -2.d0)
+        wmax = fdf_get("wmax", 2.d0)
+        eta = fdf_get("broadening", 0.01d0)
 
         diag_method = fdf_get("Diag", 1)
     end subroutine read_input

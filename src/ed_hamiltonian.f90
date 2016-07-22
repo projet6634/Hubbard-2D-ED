@@ -15,8 +15,7 @@ module ed_hamiltonian
     private
 contains
 
-    subroutine make_hamiltonian(isector,basis)
-        integer, intent(in) :: isector
+    subroutine make_hamiltonian(basis)
         type(basis_t), intent(in) :: basis
 
         character(len=100) :: fn
@@ -24,9 +23,11 @@ contains
 
         integer(kind=kind_basis) :: bra,ket
         logical :: nj(2), ni
-        integer :: a,b,isite,jsite,is,ispin,i,sgn,iuv,iuh
+        integer :: a,b,isite,jsite,is,ispin,i,sgn,iuv,iuh,isector
 
         double precision :: val, diag
+
+        isector = 1
 
         write(fn,"(2a,I2.2,a,I4.4,a)") trim(outdir),"/h_val_",isector,"-",taskid,".dat"
         iuv = 101+2*taskid
@@ -124,15 +125,16 @@ contains
     end function permsgn
 
     ! read hamiltonian in ccs format
-    subroutine load_hamiltonian(isector,basis,nnz,H,row_idx,col_ptr)
-        integer, intent(in) :: isector
+    subroutine load_hamiltonian(basis,nnz,H,row_idx,col_ptr)
         type(basis_t), intent(in) :: basis
         integer, intent(out) :: nnz
         double precision, allocatable, intent(out) :: H(:)
         integer, allocatable, intent(out) :: row_idx(:), col_ptr(:)
 
         character(len=100) :: fn
-        integer :: iuh, iuv, nloc, i, j
+        integer :: iuh, iuv, nloc, i, j, isector
+
+        isector = 1
 
         write(fn,"(2a,I2.2,a,I4.4,a)") trim(outdir),"/h_val_",isector,"-",taskid,".dat"
         iuv = 101+2*taskid
