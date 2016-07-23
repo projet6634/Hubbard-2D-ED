@@ -16,21 +16,6 @@ module solver_otf2
 
     type(basis_t) :: basis
 
-    integer, allocatable :: rank_idx(:,:)
-
-    integer, parameter :: MAX_NNZ = 100
-
-    type :: nz_link_t
-        integer :: nnz
-        integer :: idx(MAX_NNZ)
-
-        integer :: imin, imax
-    end type nz_link_t
-
-    type(nz_link_t), allocatable :: nz_links(:)
-
-    integer :: win
-
     private
 contains
 
@@ -82,13 +67,9 @@ contains
             v_init(i) = r
         enddo
 
-        allocate(nz_links(0:nprocs-1))
-
         t1 = mpi_wtime(mpierr)
         call lanczos_iteration(basis%nloc, v_init, nstep, a, b)
         t2 = mpi_wtime(mpierr)
-
-        deallocate(nz_links)
 
         if (master) then
             print *, "nstep = ", nstep
