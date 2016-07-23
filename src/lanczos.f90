@@ -63,19 +63,19 @@ contains
         interface 
             ! Y = H*X
             subroutine hx(n,x,y)
-                integer(kind=8), intent(in) :: n
+                integer, intent(in) :: n
                 double precision, intent(in) :: x(n)
                 double precision, intent(out) :: y(n)
             end subroutine hx
             ! Y = Y + H*X
             subroutine hxpy(n,x,y)
-                integer(kind=8), intent(in) :: n
+                integer, intent(in) :: n
                 double precision, intent(in) :: x(n)
                 double precision, intent(out) :: y(n)
             end subroutine hxpy
         end interface
 
-        integer(kind=8), intent(in) :: &
+        integer, intent(in) :: &
             nloc        ! dimension of the vector local to the node
         integer, intent(in) :: &
             maxnstep         ! maximum number of iteration steps
@@ -94,7 +94,7 @@ contains
         double precision, allocatable :: v(:), w(:)
         double precision :: norm_v, t  
         
-        integer(kind=8) :: i, j, ierr, k
+        integer :: i, j, ierr, k
         character(len=100) :: msg
 
         allocate(v(nloc), w(nloc))
@@ -166,20 +166,21 @@ contains
         interface 
             ! Y = H*X
             subroutine hx(n,x,y)
-                integer(kind=8), intent(in) :: n
+                integer, intent(in) :: n
                 double precision, intent(in) :: x(n)
                 double precision, intent(out) :: y(n)
             end subroutine hx
             ! Y = Y + H*X
             subroutine hxpy(n,x,y)
-                integer(kind=8), intent(in) :: n
+                integer, intent(in) :: n
                 double precision, intent(in) :: x(n)
                 double precision, intent(out) :: y(n)
             end subroutine hxpy
         end interface
 
-        integer(kind=8), intent(in) :: &
-            nloc, &       ! dimension of the vector local to the node
+        integer, intent(in) :: &
+            nloc       ! dimension of the vector local to the node
+        integer, intent(in) :: &
             nstep         
 
         double precision, intent(in) :: &
@@ -196,7 +197,7 @@ contains
         double precision, allocatable :: v(:), w(:)
         double precision :: norm_v, t
         
-        integer(kind=8) :: i, j, ierr, k
+        integer :: i, j, ierr, k
 
         gs = 0.d0
 

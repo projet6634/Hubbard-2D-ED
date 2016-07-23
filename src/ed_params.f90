@@ -9,7 +9,7 @@ module ed_params
         Lx, Ly,         &    ! lattice size x,y
         Nsite,          &    ! number of sites
         maxnstep,       &    ! maximum lanczos iteration steps
-        diag_method,    &    ! 1 = hamiltonian in csr format
+        diag_method,    &    ! 1 = csr 2 = otf
         nw
 
     double precision :: &

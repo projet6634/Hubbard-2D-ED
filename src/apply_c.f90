@@ -14,7 +14,7 @@ subroutine apply_c(basis, vec, vec_all, pm, iorb, ispin, basis_out, vec_out)
 
     double precision, intent(out) :: vec_out(basis_out%nloc), &
                                      vec_all(basis%ntot) 
-    integer(kind=kind_basis) :: basis_i, basis_j
+    integer :: basis_i, basis_j
     integer :: i,j,sgntot, isite
 
     vec_out = 0.0D0
@@ -50,7 +50,7 @@ subroutine apply_c(basis, vec, vec_all, pm, iorb, ispin, basis_out, vec_out)
 contains
 
     integer function sgn(basis_in,i,j)
-        integer(kind=kind_basis) :: basis_in
+        integer :: basis_in
         integer :: i,j, k, sgnsum
 
         sgnsum = 0

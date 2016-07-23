@@ -7,6 +7,7 @@ program main
     use ed_basis, only: generate_basis, basis_t, ed_basis_get
     use solver_csr, only: solve_csr
     use solver_otf, only: solve_otf
+    use solver_otf2, only: solve_otf2
     use ed_grid
 
     implicit none
@@ -18,7 +19,7 @@ program main
 
     integer :: nup, ndown, i, j, k
 
-    integer(kind=8) :: nloc
+    integer :: nloc
     double precision :: E0, dw
     double precision, allocatable :: &
         gs(:) ! ground state eigenvector
@@ -45,6 +46,8 @@ program main
             call solve_csr( E0, nloc, gs, G )
         case(2)
             call solve_otf( E0, nloc, gs, G )
+        case(3)
+            call solve_otf2( E0, nloc, gs, G )
         case default
             stop "invalid diag_method"
     end select

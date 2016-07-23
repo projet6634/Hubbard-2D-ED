@@ -11,8 +11,8 @@ module solver_csr
         solve_csr
 
     ! Hamiltonian related
-    integer(kind=8) :: nnz
-    integer(kind=8), allocatable :: row_idx(:), col_ptr(:)
+    integer :: nnz
+    integer, allocatable :: row_idx(:), col_ptr(:)
     double precision, allocatable :: H(:), x_all(:)
 
     type(basis_t) :: basis
@@ -28,7 +28,7 @@ contains
             G(nwloc)      ! local Green's function
         double precision, allocatable, intent(out) :: &
             gs(:)   ! ground state eigenvector
-        integer(kind=8), intent(out) :: nloc
+        integer, intent(out) :: nloc
 
         double precision :: t1, t2
 
@@ -75,7 +75,7 @@ contains
         double precision, allocatable :: a(:), b(:), v_init(:), &
                                          lanczos_v(:,:), ev(:), coeff(:)
 
-        integer(kind=8) :: i
+        integer :: i
         double precision :: t1, t2, r, residual
 
         allocate(a(maxnstep),b(maxnstep))
@@ -131,7 +131,7 @@ contains
     subroutine green_diag( E0, nloc, gs, G )
         use numeric_utils
                          
-        integer(kind=8), intent(in) :: nloc
+        integer, intent(in) :: nloc
         double precision, intent(in) :: E0, gs(nloc)
 
         double complex, intent(out) :: G(nwloc)
@@ -172,11 +172,11 @@ contains
     end subroutine green_diag
 
     subroutine hx(n, x, y)
-        integer(kind=8), intent(in) :: n
+        integer, intent(in) :: n
         double precision, intent(in) :: x(n)
         double precision, intent(out) :: y(n)
 
-        integer(kind=8) :: icol, i, nnzcol, irow, inz
+        integer :: icol, i, nnzcol, irow, inz
         double precision :: matel, colsum
 
         call mpi_allgatherv(x,basis%nloc,mpi_double_precision,x_all,&
@@ -197,11 +197,11 @@ contains
     end subroutine hx
 
     subroutine hxpy(n, x, y)
-        integer(kind=8), intent(in) :: n
+        integer, intent(in) :: n
         double precision, intent(in) :: x(n)
         double precision, intent(out) :: y(n)
 
-        integer(kind=8) :: icol, i, nnzcol, irow, inz
+        integer :: icol, i, nnzcol, irow, inz
         double precision :: matel, colsum
 
         call mpi_allgatherv(x,basis%nloc,mpi_double_precision,x_all,&

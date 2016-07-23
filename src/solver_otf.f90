@@ -27,7 +27,7 @@ contains
             G(nwloc)      ! local Green's function
         double precision, allocatable, intent(out) :: &
             gs(:)   ! ground state eigenvector
-        integer(kind=8), intent(out) :: nloc
+        integer, intent(out) :: nloc
 
         double precision :: t1, t2
 
@@ -58,7 +58,7 @@ contains
         double precision, allocatable :: a(:), b(:), v_init(:), &
                                          lanczos_v(:,:), ev(:), coeff(:)
 
-        integer(kind=8) :: i
+        integer :: i
         double precision :: t1, t2, r, residual
 
         allocate(a(maxnstep),b(maxnstep))
@@ -99,26 +99,26 @@ contains
         call mpi_bcast(E0, 1, mpi_double_precision, 0, comm, mpierr)
 
         gs = 0.d0
-        ! t1 = mpi_wtime(mpierr)
-        ! call lanczos_ground_state(hx, hxpy, basis%nloc, v_init, nstep, &
-        !                           a, b, coeff, E0, gs, residual)
-        ! t2 = mpi_wtime(mpierr)
+        t1 = mpi_wtime(mpierr)
+        call lanczos_ground_state(hx, hxpy, basis%nloc, v_init, nstep, &
+                                  a, b, coeff, E0, gs, residual)
+        t2 = mpi_wtime(mpierr)
 
-        ! if (master) then
-        !     print *, "lanczos ground state time = ", (t2-t1), " sec."
-        !     print *, "residual = ", residual
-        ! endif
+        if (master) then
+            print *, "lanczos ground state time = ", (t2-t1), " sec."
+            print *, "residual = ", residual
+        endif
 
         deallocate(v_init,a,b)
     end subroutine diag_lanczos
 
     subroutine hx(n, x, y)
-        integer(kind=8), intent(in) :: n
+        integer, intent(in) :: n
         double precision, intent(in) :: x(n)
         double precision, intent(out) :: y(n)
 
         integer :: isite, jsite
-        integer(kind=kind_basis) :: ket, bra, icol, irow, a
+        integer :: ket, bra, icol, irow, a
         double precision :: rowsum, val
         logical :: nj(2), ni
 
@@ -169,12 +169,12 @@ contains
     end subroutine hx
 
     subroutine hxpy(n, x, y)
-        integer(kind=8), intent(in) :: n
+        integer, intent(in) :: n
         double precision, intent(in) :: x(n)
         double precision, intent(out) :: y(n)
 
         integer :: isite, jsite
-        integer(kind=kind_basis) :: ket, bra, icol, irow
+        integer :: ket, bra, icol, irow
         double precision :: rowsum, val
         logical :: nj(2), ni
 
@@ -222,5 +222,4 @@ contains
             y(irow) = y(irow) + rowsum
         enddo
     end subroutine hxpy
-
 end module solver_otf

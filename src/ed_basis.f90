@@ -8,30 +8,33 @@ module ed_basis
 
     public :: generate_basis
     public :: ed_basis_get
+    public :: ed_basis_get_g
     public :: ed_basis_idx
     public :: get_bitidx
 
-    integer, parameter, public :: kind_basis = 8
+    integer, parameter, public :: kind_basis = 4
     type, public :: basis_t
-        integer(kind=kind_basis) :: nloc
+        integer :: nloc
 
-        integer(kind=kind_basis) :: ntot
-        integer(kind=kind_basis) :: nup
-        integer(kind=kind_basis) :: ndown
+        integer :: ntot
+        integer :: nup
+        integer :: ndown
 
         integer :: ne_up
         integer :: ne_down
 
         ! For up,down basis, 4-byte integer is sufficient,
         ! because the maximum number of sites will not be more than 31.
-        integer(kind=kind_basis), allocatable :: up(:)
-        integer(kind=kind_basis), allocatable :: down(:)
+        integer, allocatable :: up(:)
+        integer, allocatable :: down(:)
 
-        integer(kind=kind_basis), allocatable :: idx_up(:)
-        integer(kind=kind_basis), allocatable :: idx_down(:)
+        integer, allocatable :: idx_up(:)
+        integer, allocatable :: idx_down(:)
 
-        integer(kind=kind_basis), allocatable :: nlocals(:)
-        integer(kind=kind_basis), allocatable :: offsets(:)
+        integer, allocatable :: nlocals(:)
+        integer, allocatable :: offsets(:)
+
+        integer :: gidx1, gidx2 ! gdx1<= icol <=gidx2
     end type basis_t
 
     private
@@ -42,9 +45,9 @@ contains
         type(basis_t), intent(out) :: basis
 
         ! local variables
-        integer(kind=kind_basis) :: ispin, i, j, nam
-        integer(kind=kind_basis) :: minrange, maxrange, counts, nbit
-        integer(kind=kind_basis) :: nud(2)
+        integer :: ispin, i, j, nam
+        integer :: minrange, maxrange, counts, nbit
+        integer :: nud(2)
 
         basis%ne_up = ne_up
         basis%ne_down = ne_down
@@ -59,12 +62,19 @@ contains
         if (taskid.lt.nam) basis%nloc = basis%nloc + 1
 
         allocate(basis%nlocals(0:nprocs-1),basis%offsets(0:nprocs-1))
-        call mpi_allgather(basis%nloc,1,mpi_integer8,basis%nlocals(0),1,mpi_integer8,comm,mpierr)
+        call mpi_allgather(basis%nloc,1,mpi_integer,basis%nlocals(0),1,mpi_integer,comm,mpierr)
 
         basis%offsets(0) = 0 
         do i = 1, nprocs-1
             basis%offsets(i) = basis%offsets(i-1) + basis%nlocals(i-1)
         enddo
+
+        basis%gidx1 = basis%offsets(taskid)+1
+        if (taskid==nprocs-1) then
+            basis%gidx2 = basis%ntot
+        else
+            basis%gidx2 = basis%offsets(taskid+1)
+        endif
 
         allocate(basis%up(basis%nup), basis%down(basis%ndown))
 
@@ -112,12 +122,12 @@ contains
     end subroutine generate_basis
 
     ! ref : arXiv:1307.7542 eq (6)
-    integer(kind=kind_basis) function ed_basis_get(basis,idx_loc) 
+    integer function ed_basis_get(basis,idx_loc) 
         type(basis_t), intent(in) :: basis
-        integer(kind=kind_basis), intent(in) :: idx_loc
+        integer, intent(in) :: idx_loc
 
         ! local variables
-        integer(kind=kind_basis) :: iup, idown, idx
+        integer :: iup, idown, idx
 
         ! local idx to global idx
         idx = idx_loc + basis%offsets(taskid)
@@ -128,14 +138,27 @@ contains
         ed_basis_get = basis%up(iup)+2**(nsite)*basis%down(idown)
     end function ed_basis_get
 
-    ! ref : arXiv:1307.7542 eq (8)
-    integer(kind=kind_basis) function ed_basis_idx(basis, basis_i)
+    integer function ed_basis_get_g(basis,idx) 
         type(basis_t), intent(in) :: basis
-        integer(kind=kind_basis) :: basis_i
+        integer, intent(in) :: idx
 
         ! local variables
-        integer(kind=kind_basis) :: basis_i_up, basis_i_down
-        integer(kind=kind_basis) :: divisor
+        integer :: iup, idown
+
+        iup = mod(idx-1,basis%nup)+1
+        idown = (idx-1)/basis%nup+1
+
+        ed_basis_get_g = basis%up(iup)+2**(nsite)*basis%down(idown)
+    end function ed_basis_get_g
+
+    ! ref : arXiv:1307.7542 eq (8)
+    integer function ed_basis_idx(basis, basis_i)
+        type(basis_t), intent(in) :: basis
+        integer :: basis_i
+
+        ! local variables
+        integer :: basis_i_up, basis_i_down
+        integer :: divisor
         divisor = 2**(nsite) 
         basis_i_up = mod(basis_i,divisor)
         basis_i_down = basis_i/(divisor)
