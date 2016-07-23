@@ -13,7 +13,7 @@ contains
         integer, intent(in) :: n
         double precision, intent(in) :: a(n), b(n)
 
-        integer :: i 
+        integer(kind=8):: i 
 
         f = b(n)*b(n)/(z-a(n))
         do i = n-1, 2, -1
@@ -34,7 +34,7 @@ contains
         integer, intent(in) :: n
         double precision, intent(in) :: a(n), b(n)
 
-        integer :: i 
+        integer(kind=8):: i 
 
         f = b(n)*b(n)/(z+a(n))
         do i = n-1, 2, -1
@@ -53,7 +53,7 @@ contains
     ! Calculates the inverse matrix of a complex NxN matrix. 
     ! subroutine complex_inverse(N,A,INFO)
     !     double complex :: A(N,N), WORK(N)
-    !     integer :: INFO, N, IPIV(N)
+    !     integer(kind=8):: INFO, N, IPIV(N)
 
     !     call ZGETRF(N,N,A,N,IPIV,INFO)
 
@@ -159,7 +159,7 @@ contains
     double precision function mpi_dot_product(A,B,n) result(dab)
         use mpi
 
-        integer n
+        integer(kind=8) :: n
         double precision :: A(n), B(n), dab_tmp
 
         dab_tmp = sum(A(1:n)*B(1:n)) 
@@ -172,13 +172,13 @@ contains
     double precision function mpi_norm(A,n) result(dab)
         use mpi
 
-        integer n
+        integer(kind=8) :: n
         double precision :: A(n)
         dab = sqrt(mpi_dot_product(A,A,n))
         return    
     end function mpi_norm
 
-    integer function ifact(n)
+    integer(kind=8)function ifact(n)
 
         integer:: n,i
 
@@ -190,7 +190,7 @@ contains
         return
     end function ifact
 
-    integer function iP(n,m)
+    integer(kind=8)function iP(n,m)
 
         integer:: n,m,i
 
@@ -204,7 +204,7 @@ contains
     end function iP
 
 
-    integer function iCom(n,m) 
+    integer(kind=8)function iCom(n,m) 
         integer:: n, m, k
 
         if((n.eq.m).or.(m.eq.0)) then

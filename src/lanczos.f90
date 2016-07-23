@@ -57,24 +57,27 @@ contains
     subroutine lanczos_iteration(hx, hxpy, nloc, v_init, maxnstep, nstep, a, b)
 
         use numeric_utils, only: mpi_dot_product, mpi_norm
+        use timer
+        use mpi
 
         interface 
             ! Y = H*X
             subroutine hx(n,x,y)
-                integer, intent(in) :: n
+                integer(kind=8), intent(in) :: n
                 double precision, intent(in) :: x(n)
                 double precision, intent(out) :: y(n)
             end subroutine hx
             ! Y = Y + H*X
             subroutine hxpy(n,x,y)
-                integer, intent(in) :: n
+                integer(kind=8), intent(in) :: n
                 double precision, intent(in) :: x(n)
                 double precision, intent(out) :: y(n)
             end subroutine hxpy
         end interface
 
+        integer(kind=8), intent(in) :: &
+            nloc        ! dimension of the vector local to the node
         integer, intent(in) :: &
-            nloc, &       ! dimension of the vector local to the node
             maxnstep         ! maximum number of iteration steps
 
         double precision, intent(in) :: &
@@ -91,7 +94,8 @@ contains
         double precision, allocatable :: v(:), w(:)
         double precision :: norm_v, t  
         
-        integer :: i, j, ierr, k
+        integer(kind=8) :: i, j, ierr, k
+        character(len=100) :: msg
 
         allocate(v(nloc), w(nloc))
         
@@ -100,6 +104,11 @@ contains
 
         ! Lanczos steps
         ! ref: G. Golub, Matrix Computations, 4th ed., p.562 (2013)
+
+        if (master) then
+            write(msg,"(a,I4)") "Lanczos iteration", 1
+            call timestamp(msg)
+        endif
 
         ! normalize the initial vector
         norm_v = mpi_norm( v_init, nloc)
@@ -122,6 +131,10 @@ contains
 
         k = 2
         do while (1)
+            if (master) then
+                write(msg,"(a,I4)") "Lanczos iteration", k
+                call timestamp(msg)
+            endif
             do i=1,nloc
                 t = w(i)
                 w(i) = v(i)/b(k)
@@ -153,19 +166,19 @@ contains
         interface 
             ! Y = H*X
             subroutine hx(n,x,y)
-                integer, intent(in) :: n
+                integer(kind=8), intent(in) :: n
                 double precision, intent(in) :: x(n)
                 double precision, intent(out) :: y(n)
             end subroutine hx
             ! Y = Y + H*X
             subroutine hxpy(n,x,y)
-                integer, intent(in) :: n
+                integer(kind=8), intent(in) :: n
                 double precision, intent(in) :: x(n)
                 double precision, intent(out) :: y(n)
             end subroutine hxpy
         end interface
 
-        integer, intent(in) :: &
+        integer(kind=8), intent(in) :: &
             nloc, &       ! dimension of the vector local to the node
             nstep         
 
@@ -183,7 +196,7 @@ contains
         double precision, allocatable :: v(:), w(:)
         double precision :: norm_v, t
         
-        integer :: i, j, ierr, k
+        integer(kind=8) :: i, j, ierr, k
 
         gs = 0.d0
 

@@ -20,11 +20,11 @@ contains
         type(basis_t), intent(in) :: basis
 
         character(len=100) :: fn
-        integer :: nnz, nnz_in_col
+        integer(kind=8) :: nnz, nnz_in_col
 
         integer(kind=kind_basis) :: bra,ket
         logical :: nj(2), ni
-        integer :: a,b,isite,jsite,is,ispin,i,sgn,iuv,iuh,isector
+        integer(kind=8) :: a,b,isite,jsite,is,ispin,i,sgn,iuv,iuh,isector
 
         double precision :: val, diag
 
@@ -128,12 +128,12 @@ contains
     ! read hamiltonian in ccs format
     subroutine load_hamiltonian(basis,nnz,H,row_idx,col_ptr)
         type(basis_t), intent(in) :: basis
-        integer, intent(out) :: nnz
+        integer(kind=8), intent(out) :: nnz
         double precision, allocatable, intent(out) :: H(:)
-        integer, allocatable, intent(out) :: row_idx(:), col_ptr(:)
+        integer(kind=8), allocatable, intent(out) :: row_idx(:), col_ptr(:)
 
         character(len=100) :: fn
-        integer :: iuh, iuv, nloc, i, j, isector
+        integer(kind=8) :: iuh, iuv, nloc, i, j, isector
 
         isector = 1
 
@@ -170,11 +170,11 @@ contains
 
     subroutine multiply_H(basis,nnz,H,row_idx,col_ptr,x,y)
         type(basis_t), intent(in) :: basis
-        integer, intent(in) :: nnz, row_idx(nnz), col_ptr(basis%nloc+1)
+        integer(kind=8), intent(in) :: nnz, row_idx(nnz), col_ptr(basis%nloc+1)
         double precision, intent(in) :: x(basis%nloc), H(nnz)
         double precision, intent(out) :: y(basis%nloc)
 
-        integer :: icol, i, nnzcol, irow, inz
+        integer(kind=8) :: icol, i, nnzcol, irow, inz
         double precision :: matel, colsum, x_all(basis%ntot)
 
         call mpi_allgatherv(x,basis%nloc,mpi_double_precision,x_all,&

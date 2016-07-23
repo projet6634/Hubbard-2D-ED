@@ -11,7 +11,7 @@ module ed_basis
     public :: ed_basis_idx
     public :: get_bitidx
 
-    integer, parameter, public :: kind_basis = 4
+    integer, parameter, public :: kind_basis = 8
     type, public :: basis_t
         integer(kind=kind_basis) :: nloc
 
@@ -42,9 +42,9 @@ contains
         type(basis_t), intent(out) :: basis
 
         ! local variables
-        integer :: ispin, i, j, nam
-        integer :: minrange, maxrange, counts, nbit
-        integer :: nud(2)
+        integer(kind=kind_basis) :: ispin, i, j, nam
+        integer(kind=kind_basis) :: minrange, maxrange, counts, nbit
+        integer(kind=kind_basis) :: nud(2)
 
         basis%ne_up = ne_up
         basis%ne_down = ne_down
@@ -59,7 +59,7 @@ contains
         if (taskid.lt.nam) basis%nloc = basis%nloc + 1
 
         allocate(basis%nlocals(0:nprocs-1),basis%offsets(0:nprocs-1))
-        call mpi_allgather(basis%nloc,1,mpi_integer,basis%nlocals(0),1,mpi_integer,comm,mpierr)
+        call mpi_allgather(basis%nloc,1,mpi_integer8,basis%nlocals(0),1,mpi_integer8,comm,mpierr)
 
         basis%offsets(0) = 0 
         do i = 1, nprocs-1
@@ -114,10 +114,10 @@ contains
     ! ref : arXiv:1307.7542 eq (6)
     integer(kind=kind_basis) function ed_basis_get(basis,idx_loc) 
         type(basis_t), intent(in) :: basis
-        integer, intent(in) :: idx_loc
+        integer(kind=kind_basis), intent(in) :: idx_loc
 
         ! local variables
-        integer :: iup, idown, idx
+        integer(kind=kind_basis) :: iup, idown, idx
 
         ! local idx to global idx
         idx = idx_loc + basis%offsets(taskid)
@@ -129,7 +129,7 @@ contains
     end function ed_basis_get
 
     ! ref : arXiv:1307.7542 eq (8)
-    integer function ed_basis_idx(basis, basis_i)
+    integer(kind=kind_basis) function ed_basis_idx(basis, basis_i)
         type(basis_t), intent(in) :: basis
         integer(kind=kind_basis) :: basis_i
 

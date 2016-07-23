@@ -18,7 +18,7 @@ program main
 
     integer :: nup, ndown, i, j, k
 
-    integer :: nloc
+    integer(kind=8) :: nloc
     double precision :: E0, dw
     double precision, allocatable :: &
         gs(:) ! ground state eigenvector

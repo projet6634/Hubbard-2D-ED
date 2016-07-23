@@ -27,7 +27,7 @@ contains
             G(nwloc)      ! local Green's function
         double precision, allocatable, intent(out) :: &
             gs(:)   ! ground state eigenvector
-        integer, intent(out) :: nloc
+        integer(kind=8), intent(out) :: nloc
 
         double precision :: t1, t2
 
@@ -58,7 +58,7 @@ contains
         double precision, allocatable :: a(:), b(:), v_init(:), &
                                          lanczos_v(:,:), ev(:), coeff(:)
 
-        integer :: i
+        integer(kind=8) :: i
         double precision :: t1, t2, r, residual
 
         allocate(a(maxnstep),b(maxnstep))
@@ -113,7 +113,7 @@ contains
     end subroutine diag_lanczos
 
     subroutine hx(n, x, y)
-        integer, intent(in) :: n
+        integer(kind=8), intent(in) :: n
         double precision, intent(in) :: x(n)
         double precision, intent(out) :: y(n)
 
@@ -169,7 +169,7 @@ contains
     end subroutine hx
 
     subroutine hxpy(n, x, y)
-        integer, intent(in) :: n
+        integer(kind=8), intent(in) :: n
         double precision, intent(in) :: x(n)
         double precision, intent(out) :: y(n)
 
